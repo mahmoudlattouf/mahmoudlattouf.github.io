@@ -1,2 +1,70 @@
-<h1>FortiAppSec Test</h1>
-<p>Hello from origin server</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WAF Test Page</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f4f4f4;
+        }
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🛡️ FortiAppSec WAF Test Page</h1>
+
+<div class="box">
+    <h2>1. Reflected Input Test (XSS simulation)</h2>
+    <input type="text" id="inputBox" placeholder="Try: <script>alert(1)</script>">
+    <button onclick="reflectInput()">Submit</button>
+    <p id="output"></p>
+</div>
+
+<div class="box">
+    <h2>2. URL Parameter Test</h2>
+    <p>Try adding payloads in URL:</p>
+    <code>?q=test</code><br>
+    <code>?q=' OR 1=1 --</code><br>
+    <code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>
+    <p id="queryOutput"></p>
+</div>
+
+<div class="box">
+    <h2>3. Fake Login (POST simulation)</h2>
+    <form method="GET">
+        <input name="username" placeholder="username">
+        <input name="password" placeholder="password">
+        <button type="submit">Login</button>
+    </form>
+</div>
+
+<script>
+function reflectInput() {
+    let input = document.getElementById("inputBox").value;
+    document.getElementById("output").innerHTML = input;
+}
+
+// Read query parameter
+const params = new URLSearchParams(window.location.search);
+const q = params.get("q");
+
+if (q) {
+    document.getElementById("queryOutput").innerHTML = q;
+}
+</script>
+
+</body>
+</html>
