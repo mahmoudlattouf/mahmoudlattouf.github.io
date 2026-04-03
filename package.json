@@ -1,5 +1,5 @@
 {
-  "name": "waf-test-app",
+  "name": "waf-interactive-app",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
