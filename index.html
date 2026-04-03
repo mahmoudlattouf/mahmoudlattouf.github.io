@@ -11,7 +11,17 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 </style>
 </head>
 <body>
+<div class="box">
+<h2>POST Request Test (WAF)</h2>
 
+<textarea id="postData">
+{"username":"admin","password":"' OR 1=1 --"}
+</textarea>
+
+<button onclick="sendPost()">Send POST Request</button>
+
+<p id="postStatus"></p>
+</div>
 <h1>🛡️ Advanced WAF Test Page</h1>
 
 <!-- 1. Reflected XSS -->
