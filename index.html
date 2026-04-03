@@ -1,68 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>WAF Test Page</title>
-    <style>
-        body {
-            font-family: Arial;
-            margin: 40px;
-            background: #f4f4f4;
-        }
-        .box {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        input, button {
-            padding: 10px;
-            margin-top: 10px;
-            width: 100%;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Advanced WAF Test Page</title>
+<style>
+body { font-family: Arial; margin: 40px; background: #f4f4f4; }
+.box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+input, button, textarea { padding: 10px; margin-top: 10px; width: 100%; }
+code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
+</style>
 </head>
 <body>
 
-<h1>🛡️ FortiAppSec WAF Test Page</h1>
+<h1>🛡️ Advanced WAF Test Page</h1>
 
+<!-- 1. Reflected XSS -->
 <div class="box">
-    <h2>1. Reflected Input Test (XSS simulation)</h2>
-    <input type="text" id="inputBox" placeholder="Try: <script>alert(1)</script>">
-    <button onclick="reflectInput()">Submit</button>
-    <p id="output"></p>
+<h2>1. Reflected XSS</h2>
+<input id="xssInput" placeholder="<script>alert(1)</script>">
+<button onclick="runXSS()">Submit</button>
+<div id="xssOutput"></div>
 </div>
 
+<!-- 2. DOM-based XSS -->
 <div class="box">
-    <h2>2. URL Parameter Test</h2>
-    <p>Try adding payloads in URL:</p>
-    <code>?q=test</code><br>
-    <code>?q=' OR 1=1 --</code><br>
-    <code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>
-    <p id="queryOutput"></p>
+<h2>2. DOM XSS via URL Fragment</h2>
+<p>Try: <code>#&lt;img src=x onerror=alert(1)&gt;</code></p>
+<div id="domOutput"></div>
 </div>
 
+<!-- 3. URL Query Test -->
 <div class="box">
-    <h2>3. Fake Login (POST simulation)</h2>
-    <form method="GET">
-        <input name="username" placeholder="username">
-        <input name="password" placeholder="password">
-        <button type="submit">Login</button>
-    </form>
+<h2>3. Query Parameter Injection</h2>
+<p>Try:</p>
+<code>?q=' OR 1=1 --</code>
+<code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>
+<div id="queryOutput"></div>
+</div>
+
+<!-- 4. Fake Login -->
+<div class="box">
+<h2>4. Fake Login (SQLi test)</h2>
+<form method="GET">
+<input name="username" placeholder="admin' OR '1'='1">
+<input name="password" placeholder="password">
+<button type="submit">Login</button>
+</form>
+</div>
+
+<!-- 5. JSON API Simulation -->
+<div class="box">
+<h2>5. API Request (JSON Payload)</h2>
+<textarea id="jsonInput">
+{"username":"admin","password":"' OR 1=1 --"}
+</textarea>
+<button onclick="sendJSON()">Send API Request</button>
+<pre id="jsonOutput"></pre>
+</div>
+
+<!-- 6. Header Simulation -->
+<div class="box">
+<h2>6. Custom Header Test</h2>
+<input id="headerInput" placeholder="X-Test: <script>alert(1)</script>">
+<button onclick="sendHeader()">Send Request</button>
+<pre id="headerOutput"></pre>
+</div>
+
+<!-- 7. Command Injection -->
+<div class="box">
+<h2>7. Command Injection Simulation</h2>
+<input id="cmdInput" placeholder="; ls -la">
+<button onclick="runCmd()">Execute</button>
+<div id="cmdOutput"></div>
+</div>
+
+<!-- 8. Path Traversal -->
+<div class="box">
+<h2>8. Path Traversal</h2>
+<input id="pathInput" placeholder="../../etc/passwd">
+<button onclick="testPath()">Test</button>
+<div id="pathOutput"></div>
+</div>
+
+<!-- 9. File Upload Simulation -->
+<div class="box">
+<h2>9. File Upload</h2>
+<input type="file" id="fileInput">
+<button onclick="uploadFile()">Upload</button>
+<div id="fileOutput"></div>
+</div>
+
+<!-- 10. Cookie Injection -->
+<div class="box">
+<h2>10. Cookie / Storage Injection</h2>
+<input id="cookieInput" placeholder="test=<script>alert(1)</script>">
+<button onclick="setCookie()">Set Cookie</button>
+<div id="cookieOutput"></div>
+</div>
+
+<!-- 11. Redirect Test -->
+<div class="box">
+<h2>11. Open Redirect Test</h2>
+<input id="redirectInput" placeholder="https://evil.com">
+<button onclick="redirect()">Redirect</button>
 </div>
 
 <script>
-function reflectInput() {
-    let input = document.getElementById("inputBox").value;
-    document.getElementById("output").innerHTML = input;
+// 1. Reflected XSS
+function runXSS() {
+    let val = document.getElementById("xssInput").value;
+    document.getElementById("xssOutput").innerHTML = val;
 }
 
-// Read query parameter
-const params = new URLSearchParams(window.location.search);
-const q = params.get("q");
+// 2. DOM XSS
+document.getElementById("domOutput").innerHTML = location.hash.substring(1);
 
-if (q) {
-    document.getElementById("queryOutput").innerHTML = q;
+// 3. Query param
+const params = new URLSearchParams(window.location.search);
+if (params.get("q")) {
+    document.getElementById("queryOutput").innerHTML = params.get("q");
+}
+
+// 5. JSON API simulation
+function sendJSON() {
+    let data = document.getElementById("jsonInput").value;
+    document.getElementById("jsonOutput").innerText = data;
+}
+
+// 6. Header simulation
+function sendHeader() {
+    let headerVal = document.getElementById("headerInput").value;
+
+    fetch(window.location.href, {
+        headers: {
+            "X-Test": headerVal
+        }
+    })
+    .then(res => res.text())
+    .then(data => {
+        document.getElementById("headerOutput").innerText = "Header sent: " + headerVal;
+    });
+}
+
+// 7. Command simulation
+function runCmd() {
+    let cmd = document.getElementById("cmdInput").value;
+    document.getElementById("cmdOutput").innerHTML = "Executed: " + cmd;
+}
+
+// 8. Path traversal
+function testPath() {
+    let path = document.getElementById("pathInput").value;
+    document.getElementById("pathOutput").innerHTML = "Requested: " + path;
+}
+
+// 9. File upload
+function uploadFile() {
+    let file = document.getElementById("fileInput").files[0];
+    if (file) {
+        document.getElementById("fileOutput").innerText = "Uploaded: " + file.name;
+    }
+}
+
+// 10. Cookie injection
+function setCookie() {
+    let val = document.getElementById("cookieInput").value;
+    document.cookie = val;
+    document.getElementById("cookieOutput").innerText = "Cookie set: " + val;
+}
+
+// 11. Redirect
+function redirect() {
+    let url = document.getElementById("redirectInput").value;
+    window.location.href = url;
 }
 </script>
 
