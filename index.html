@@ -8,13 +8,13 @@ body { font-family: Arial; margin: 40px; background: #f4f4f4; }
 .box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
 input, button, textarea { padding: 10px; margin-top: 10px; width: 100%; }
 code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
+#networkLog { background: #222; color: #0f0; padding: 10px; height: 200px; overflow-y: scroll; font-family: monospace; }
 </style>
 </head>
 <body>
 
-<h1>🛡️ Advanced WAF Test Page</h1>
+<h1>🛡️ Advanced WAF Test Page (Live Requests)</h1>
 
-<!-- 1. Reflected XSS -->
 <div class="box">
 <h2>1. Reflected XSS</h2>
 <input id="xssInput" placeholder="<script>alert(1)</script>">
@@ -22,26 +22,18 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 <div id="xssOutput"></div>
 </div>
 
-<!-- 2. DOM-based XSS -->
 <div class="box">
 <h2>2. DOM XSS via URL Fragment</h2>
 <p>Try: <code>#&lt;img src=x onerror=alert(1)&gt;</code></p>
 <div id="domOutput"></div>
 </div>
 
-<!-- 3. URL Query Test -->
 <div class="box">
-<h2>3. Query Parameter Injection (GET request)</h2>
-<form action="/" method="GET">
-    <input name="q" placeholder="' OR 1=1 --">
-    <button type="submit">Send GET Request</button>
-</form>
-<p>Or test JavaScript GET request:</p>
+<h2>3. GET Request Test</h2>
 <input id="getInput" placeholder="' OR 1=1 --">
 <button onclick="sendGet()">Send GET via JS</button>
 </div>
 
-<!-- 4. Fake Login (SQLi test) -->
 <div class="box">
 <h2>4. Fake Login (GET form)</h2>
 <form method="GET">
@@ -51,53 +43,47 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 </form>
 </div>
 
-<!-- 5. POST JSON Test -->
 <div class="box">
 <h2>5. POST Request Test (JSON)</h2>
 <textarea id="postData">
 {"username":"admin","password":"' OR 1=1 --"}
 </textarea>
 <button onclick="sendPost()">Send POST Request</button>
-<p id="postStatus"></p>
 </div>
 
-<!-- 6. Custom Header Test -->
 <div class="box">
 <h2>6. Custom Header Test</h2>
 <input id="headerInput" placeholder="X-Test: <script>alert(1)</script>">
-<button onclick="sendHeader()">Send Request with Header</button>
-<pre id="headerOutput"></pre>
+<button onclick="sendHeader()">Send Header</button>
 </div>
 
-<!-- 7. Command Injection Simulation -->
 <div class="box">
 <h2>7. Command Injection Simulation</h2>
 <input id="cmdInput" placeholder="; ls -la">
-<button onclick="sendCmd()">Send Command (GET request)</button>
-<div id="cmdOutput"></div>
+<button onclick="sendCmd()">Send Command</button>
 </div>
 
-<!-- 8. Path Traversal -->
 <div class="box">
-<h2>8. Path Traversal</h2>
+<h2>8. Path Traversal Simulation</h2>
 <input id="pathInput" placeholder="../../etc/passwd">
 <button onclick="sendPath()">Send Path Traversal</button>
-<div id="pathOutput"></div>
 </div>
 
-<!-- 9. Cookie / Storage Injection -->
 <div class="box">
 <h2>9. Cookie / Storage Injection</h2>
 <input id="cookieInput" placeholder="test=<script>alert(1)</script>">
 <button onclick="setCookie()">Set Cookie</button>
-<div id="cookieOutput"></div>
 </div>
 
-<!-- 10. Redirect Test -->
 <div class="box">
 <h2>10. Open Redirect Test</h2>
 <input id="redirectInput" placeholder="https://evil.com">
 <button onclick="redirect()">Redirect</button>
+</div>
+
+<div class="box">
+<h2>Network Log (Simulation)</h2>
+<div id="networkLog"></div>
 </div>
 
 <script>
@@ -105,78 +91,81 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 function runXSS() {
     let val = document.getElementById("xssInput").value;
     document.getElementById("xssOutput").innerHTML = val;
+    logRequest("Reflected XSS simulated: " + val);
 }
 
 // 2. DOM XSS
 document.getElementById("domOutput").innerHTML = location.hash.substring(1);
 
-// 3. Query param
-const params = new URLSearchParams(window.location.search);
-if (params.get("q")) {
-    document.getElementById("queryOutput")?.innerHTML = params.get("q");
-}
-
-// JS GET request
+// 3. GET request via JS
 function sendGet() {
     let q = encodeURIComponent(document.getElementById("getInput").value);
-    fetch("/?q=" + q);
+    fetch("/?q=" + q)
+    .then(res => logRequest("GET /?q=" + q + " Status: " + res.status))
+    .catch(err => logRequest("GET failed: " + err));
 }
 
 // 5. POST request
 function sendPost() {
+    let body = document.getElementById("postData").value;
     fetch(window.location.href, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-WAF-Test": "<script>alert(1)</script>"
         },
-        body: document.getElementById("postData").value
+        body: body
     })
-    .then(res => {
-        document.getElementById("postStatus").innerText =
-            "POST request sent. Status: " + res.status;
-    })
-    .catch(err => {
-        document.getElementById("postStatus").innerText =
-            "Request sent (backend not available)";
-    });
+    .then(res => logRequest("POST sent. Body: " + body + " Status: " + res.status))
+    .catch(err => logRequest("POST request failed: " + err));
 }
 
-// 6. Header simulation
+// 6. Custom header
 function sendHeader() {
     let headerVal = document.getElementById("headerInput").value;
     fetch(window.location.href, {
         method: "GET",
         headers: { "X-WAF-Test": headerVal }
-    });
-    document.getElementById("headerOutput").innerText = "Header sent: " + headerVal;
+    })
+    .then(res => logRequest("GET with header X-WAF-Test: " + headerVal + " Status: " + res.status))
+    .catch(err => logRequest("Header request failed: " + err));
 }
 
-// 7. Command injection simulation
+// 7. Command injection
 function sendCmd() {
     let cmd = encodeURIComponent(document.getElementById("cmdInput").value);
-    fetch("/?cmd=" + cmd);
-    document.getElementById("cmdOutput").innerText = "Command sent: " + cmd;
+    fetch("/?cmd=" + cmd)
+    .then(res => logRequest("GET /?cmd=" + cmd + " Status: " + res.status))
+    .catch(err => logRequest("Command request failed: " + err));
 }
 
 // 8. Path traversal
 function sendPath() {
     let path = encodeURIComponent(document.getElementById("pathInput").value);
-    fetch("/?path=" + path);
-    document.getElementById("pathOutput").innerText = "Path sent: " + path;
+    fetch("/?path=" + path)
+    .then(res => logRequest("GET /?path=" + path + " Status: " + res.status))
+    .catch(err => logRequest("Path request failed: " + err));
 }
 
 // 9. Cookie injection
 function setCookie() {
     let val = document.getElementById("cookieInput").value;
     document.cookie = val;
-    document.getElementById("cookieOutput").innerText = "Cookie set: " + val;
+    logRequest("Cookie set: " + val);
 }
 
 // 10. Redirect
 function redirect() {
     let url = document.getElementById("redirectInput").value;
+    logRequest("Redirect to: " + url);
     window.location.href = url;
+}
+
+// Utility: log to network panel
+function logRequest(msg) {
+    let log = document.getElementById("networkLog");
+    log.innerHTML += msg + "\n";
+    log.scrollTop = log.scrollHeight;
 }
 </script>
 
