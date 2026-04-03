@@ -1,33 +1,69 @@
 const express = require('express');
 const app = express();
 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Home
+// Home page with forms
 app.get('/', (req, res) => {
-  res.send('WAF Test App Running');
+  res.send(`
+    <h1>WAF Test App</h1>
+
+    <h2>Search</h2>
+    <form action="/search">
+      <input name="q" />
+      <button type="submit">Search</button>
+    </form>
+
+    <h2>Login</h2>
+    <form action="/login">
+      <input name="username" placeholder="username" />
+      <input name="password" placeholder="password" />
+      <button type="submit">Login</button>
+    </form>
+
+    <h2>Comment</h2>
+    <form action="/comment" method="POST">
+      <input name="comment" />
+      <button type="submit">Post</button>
+    </form>
+
+    <h2>API Test (JSON)</h2>
+    <form action="/api/data" method="POST">
+      <textarea name="json"></textarea>
+      <button type="submit">Send</button>
+    </form>
+  `);
 });
 
-// XSS test
+// Search (XSS)
 app.get('/search', (req, res) => {
-  const q = req.query.q;
-  res.send(`Search result: ${q}`);
+  res.send(`You searched for: ${req.query.q}`);
 });
 
-// SQLi-style test
+// Login (SQLi-style)
 app.get('/login', (req, res) => {
-  const user = req.query.username;
-  const pass = req.query.password;
-  res.send(`Login attempt: ${user}`);
+  res.send(`Login attempt: ${req.query.username}`);
+});
+
+// Comment (stored XSS simulation)
+app.post('/comment', (req, res) => {
+  res.send(`Comment received: ${req.body.comment}`);
+});
+
+// API endpoint (JSON injection)
+app.post('/api/data', (req, res) => {
+  res.json({
+    received: req.body
+  });
 });
 
 // Command injection style
 app.get('/ping', (req, res) => {
-  const host = req.query.host;
-  res.send(`Pinging ${host}`);
+  res.send(`Pinging ${req.query.host}`);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`App running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
