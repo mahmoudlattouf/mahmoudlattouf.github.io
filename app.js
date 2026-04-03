@@ -1,3 +1,14 @@
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Home
+app.get('/', (req, res) => {
+  res.send('WAF Test App Running');
+});
+
+// XSS test
 app.get('/search', (req, res) => {
   const q = req.query.q;
   res.send(`Search result: ${q}`);
