@@ -11,17 +11,7 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 </style>
 </head>
 <body>
-<div class="box">
-<h2>POST Request Test (WAF)</h2>
 
-<textarea id="postData">
-{"username":"admin","password":"' OR 1=1 --"}
-</textarea>
-
-<button onclick="sendPost()">Send POST Request</button>
-
-<p id="postStatus"></p>
-</div>
 <h1>🛡️ Advanced WAF Test Page</h1>
 
 <!-- 1. Reflected XSS -->
@@ -41,16 +31,19 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 
 <!-- 3. URL Query Test -->
 <div class="box">
-<h2>3. Query Parameter Injection</h2>
-<p>Try:</p>
-<code>?q=' OR 1=1 --</code>
-<code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>
-<div id="queryOutput"></div>
+<h2>3. Query Parameter Injection (GET request)</h2>
+<form action="/" method="GET">
+    <input name="q" placeholder="' OR 1=1 --">
+    <button type="submit">Send GET Request</button>
+</form>
+<p>Or test JavaScript GET request:</p>
+<input id="getInput" placeholder="' OR 1=1 --">
+<button onclick="sendGet()">Send GET via JS</button>
 </div>
 
-<!-- 4. Fake Login -->
+<!-- 4. Fake Login (SQLi test) -->
 <div class="box">
-<h2>4. Fake Login (SQLi test)</h2>
+<h2>4. Fake Login (GET form)</h2>
 <form method="GET">
 <input name="username" placeholder="admin' OR '1'='1">
 <input name="password" placeholder="password">
@@ -58,29 +51,29 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 </form>
 </div>
 
-<!-- 5. JSON API Simulation -->
+<!-- 5. POST JSON Test -->
 <div class="box">
-<h2>5. API Request (JSON Payload)</h2>
-<textarea id="jsonInput">
+<h2>5. POST Request Test (JSON)</h2>
+<textarea id="postData">
 {"username":"admin","password":"' OR 1=1 --"}
 </textarea>
-<button onclick="sendJSON()">Send API Request</button>
-<pre id="jsonOutput"></pre>
+<button onclick="sendPost()">Send POST Request</button>
+<p id="postStatus"></p>
 </div>
 
-<!-- 6. Header Simulation -->
+<!-- 6. Custom Header Test -->
 <div class="box">
 <h2>6. Custom Header Test</h2>
 <input id="headerInput" placeholder="X-Test: <script>alert(1)</script>">
-<button onclick="sendHeader()">Send Request</button>
+<button onclick="sendHeader()">Send Request with Header</button>
 <pre id="headerOutput"></pre>
 </div>
 
-<!-- 7. Command Injection -->
+<!-- 7. Command Injection Simulation -->
 <div class="box">
 <h2>7. Command Injection Simulation</h2>
 <input id="cmdInput" placeholder="; ls -la">
-<button onclick="runCmd()">Execute</button>
+<button onclick="sendCmd()">Send Command (GET request)</button>
 <div id="cmdOutput"></div>
 </div>
 
@@ -88,53 +81,26 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 <div class="box">
 <h2>8. Path Traversal</h2>
 <input id="pathInput" placeholder="../../etc/passwd">
-<button onclick="testPath()">Test</button>
+<button onclick="sendPath()">Send Path Traversal</button>
 <div id="pathOutput"></div>
 </div>
 
-<!-- 9. File Upload Simulation -->
+<!-- 9. Cookie / Storage Injection -->
 <div class="box">
-<h2>9. File Upload</h2>
-<input type="file" id="fileInput">
-<button onclick="uploadFile()">Upload</button>
-<div id="fileOutput"></div>
-</div>
-
-<!-- 10. Cookie Injection -->
-<div class="box">
-<h2>10. Cookie / Storage Injection</h2>
+<h2>9. Cookie / Storage Injection</h2>
 <input id="cookieInput" placeholder="test=<script>alert(1)</script>">
 <button onclick="setCookie()">Set Cookie</button>
 <div id="cookieOutput"></div>
 </div>
 
-<!-- 11. Redirect Test -->
+<!-- 10. Redirect Test -->
 <div class="box">
-<h2>11. Open Redirect Test</h2>
+<h2>10. Open Redirect Test</h2>
 <input id="redirectInput" placeholder="https://evil.com">
 <button onclick="redirect()">Redirect</button>
 </div>
 
 <script>
-    function sendPost() {
-    fetch(window.location.href, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-WAF-Test": "<script>alert(1)</script>"
-        },
-        body: document.getElementById("postData").value
-    })
-    .then(response => {
-        document.getElementById("postStatus").innerText =
-            "POST request sent. Status: " + response.status;
-    })
-    .catch(error => {
-        document.getElementById("postStatus").innerText =
-            "Request sent (likely blocked or no backend)";
-        console.log(error);
-    });
-}
 // 1. Reflected XSS
 function runXSS() {
     let val = document.getElementById("xssInput").value;
@@ -147,58 +113,67 @@ document.getElementById("domOutput").innerHTML = location.hash.substring(1);
 // 3. Query param
 const params = new URLSearchParams(window.location.search);
 if (params.get("q")) {
-    document.getElementById("queryOutput").innerHTML = params.get("q");
+    document.getElementById("queryOutput")?.innerHTML = params.get("q");
 }
 
-// 5. JSON API simulation
-function sendJSON() {
-    let data = document.getElementById("jsonInput").value;
-    document.getElementById("jsonOutput").innerText = data;
+// JS GET request
+function sendGet() {
+    let q = encodeURIComponent(document.getElementById("getInput").value);
+    fetch("/?q=" + q);
+}
+
+// 5. POST request
+function sendPost() {
+    fetch(window.location.href, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-WAF-Test": "<script>alert(1)</script>"
+        },
+        body: document.getElementById("postData").value
+    })
+    .then(res => {
+        document.getElementById("postStatus").innerText =
+            "POST request sent. Status: " + res.status;
+    })
+    .catch(err => {
+        document.getElementById("postStatus").innerText =
+            "Request sent (backend not available)";
+    });
 }
 
 // 6. Header simulation
 function sendHeader() {
     let headerVal = document.getElementById("headerInput").value;
-
     fetch(window.location.href, {
-        headers: {
-            "X-Test": headerVal
-        }
-    })
-    .then(res => res.text())
-    .then(data => {
-        document.getElementById("headerOutput").innerText = "Header sent: " + headerVal;
+        method: "GET",
+        headers: { "X-WAF-Test": headerVal }
     });
+    document.getElementById("headerOutput").innerText = "Header sent: " + headerVal;
 }
 
-// 7. Command simulation
-function runCmd() {
-    let cmd = document.getElementById("cmdInput").value;
-    document.getElementById("cmdOutput").innerHTML = "Executed: " + cmd;
+// 7. Command injection simulation
+function sendCmd() {
+    let cmd = encodeURIComponent(document.getElementById("cmdInput").value);
+    fetch("/?cmd=" + cmd);
+    document.getElementById("cmdOutput").innerText = "Command sent: " + cmd;
 }
 
 // 8. Path traversal
-function testPath() {
-    let path = document.getElementById("pathInput").value;
-    document.getElementById("pathOutput").innerHTML = "Requested: " + path;
+function sendPath() {
+    let path = encodeURIComponent(document.getElementById("pathInput").value);
+    fetch("/?path=" + path);
+    document.getElementById("pathOutput").innerText = "Path sent: " + path;
 }
 
-// 9. File upload
-function uploadFile() {
-    let file = document.getElementById("fileInput").files[0];
-    if (file) {
-        document.getElementById("fileOutput").innerText = "Uploaded: " + file.name;
-    }
-}
-
-// 10. Cookie injection
+// 9. Cookie injection
 function setCookie() {
     let val = document.getElementById("cookieInput").value;
     document.cookie = val;
     document.getElementById("cookieOutput").innerText = "Cookie set: " + val;
 }
 
-// 11. Redirect
+// 10. Redirect
 function redirect() {
     let url = document.getElementById("redirectInput").value;
     window.location.href = url;
