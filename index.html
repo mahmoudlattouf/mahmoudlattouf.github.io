@@ -116,6 +116,25 @@ code { background: #eee; padding: 3px; display: block; margin: 5px 0; }
 </div>
 
 <script>
+    function sendPost() {
+    fetch(window.location.href, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-WAF-Test": "<script>alert(1)</script>"
+        },
+        body: document.getElementById("postData").value
+    })
+    .then(response => {
+        document.getElementById("postStatus").innerText =
+            "POST request sent. Status: " + response.status;
+    })
+    .catch(error => {
+        document.getElementById("postStatus").innerText =
+            "Request sent (likely blocked or no backend)";
+        console.log(error);
+    });
+}
 // 1. Reflected XSS
 function runXSS() {
     let val = document.getElementById("xssInput").value;
